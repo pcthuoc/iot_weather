@@ -1,0 +1,313 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Dashboard {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+<main class="content">
+
+    {% include 'includes/navigation.html' %}
+
+
+    <div class="row justify-content-md-center">
+        {% for sensor in sensors %}
+
+        <div class="col-12 col-sm-6 col-xl-3 mb-3">
+            <div class="card border-light shadow-sm" data-sensor-id="{{ sensor.sensor_id }}">
+
+                <div class="card-body">
+                    <div class="row d-block d-xl-flex align-items-center">
+                        <div
+                            class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                            <div class="icon icon-shape icon-md rounded mr-4 mr-sm-0 
+                                            {% if sensor.sensor_name == 'Nhiệt Độ' %}
+                                                icon-shape-danger
+                                            {% elif sensor.sensor_name == 'Nhịp Tim' %}
+                                                icon-shape-primary
+                                            {% elif sensor.sensor_name == 'SPO2' %}
+                                                icon-shape-success
+                                            {% else %}
+                                                icon-shape-gray
+                                            {% endif %}
+                                        ">
+                                <span class="fas 
+                                        {% if sensor.sensor_name == 'Nhiệt Độ' %}
+                                            fa-thermometer-half
+                                        {% elif sensor.sensor_name == 'Cảm biến PH' %}
+                                            fa-vial
+                                        {% elif sensor.sensor_name == 'Cảm biến TDS' %}
+                                            fa-tint
+                                        {% elif sensor.sensor_name == 'Cảm biến độ đục' %}
+                                            fa-water
+                                        {% else %}
+                                            fa-question
+                                        {% endif %}
+                                    "></span>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-7 px-xl-0">
+                            <h2 class="h6">{{ sensor.sensor_name }}</h2>
+                            <h3 class="mb-1">{{ sensor.value }} {{ sensor.unit }}</h3>
+                            <small>Cập nhật lúc: {{ sensor.updated_at|date:"H:i d/m/Y" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="row">
+        <div class="col-12 col-xl-8 mb-4">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card border-light shadow-sm">
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h2 class="h5">Dữ liệu đồ thị cảm biến</h2>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Nhóm nút chọn mốc thời gian -->
+                            <div class="mb-3 text-center">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Chọn mốc thời gian">
+                                    <button class="btn btn-outline-primary range-btn" data-range="1h">1h</button>
+                                    <button class="btn btn-outline-primary range-btn" data-range="3h">3h</button>
+                                    <button class="btn btn-outline-primary range-btn" data-range="6h">6h</button>
+                                    <button class="btn btn-primary range-btn" data-range="12h">12h</button>
+                                    <!-- Đặt mặc định -->
+                                    <button class="btn btn-outline-primary range-btn" data-range="24h">24h</button>
+                                    <button class="btn btn-outline-primary range-btn" data-range="3d">3 ngày</button>
+                                    <button class="btn btn-outline-primary range-btn" data-range="7d">7 ngày</button>
+                                </div>
+
+
+                            </div>
+                            <div id="sensorChart"></div>
+                            <!-- Vùng hiển thị biểu đồ -->
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+        <div class="col-12 col-xl-4 mb-4">
+            <div class="col-12 px-0 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h5">Phương trình nội suy</h2>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+
+</main>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+
+    // Kết nối WebSocket Sensor
+    const sensorSocket = new WebSocket("ws://" + window.location.host + "/ws/sensor/");
+
+    sensorSocket.onopen = function () {
+        console.log("✅ Kết nối WebSocket Sensor thành công");
+    };
+    sensorSocket.onmessage = function (e) {
+        const sensorData = JSON.parse(e.data);
+        console.log("📡 Cập nhật cảm biến:", sensorData);
+
+        // Tìm thẻ card theo sensor_id
+        const card = document.querySelector(`.card[data-sensor-id="${sensorData.sensor_id}"]`);
+        if (!card) return;
+
+        // Tìm và cập nhật giá trị
+        const valueElement = card.querySelector('h3.mb-1');
+        if (valueElement) {
+            valueElement.textContent = `${sensorData.value} ${sensorData.unit || ''}`;
+        }
+
+        // Tìm và cập nhật thời gian
+        const timeElement = card.querySelector('small');
+        if (timeElement) {
+            timeElement.textContent = `Cập nhật lúc: ${formatTime(sensorData.updated_at)}`;
+        }
+    };
+
+    // Hàm định dạng lại timestamp
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        if (isNaN(date)) {
+            console.warn("⛔ Không thể parse thời gian:", timestamp);
+            return "Không rõ thời gian";
+        }
+
+        return date.toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+
+    sensorSocket.onclose = function (e) {
+        console.log("❌ Kết nối WebSocket Sensor đã đóng", e);
+    };
+
+    sensorSocket.onerror = function (e) {
+        console.error("💥 Lỗi WebSocket Sensor:", e);
+    };
+    let chart;
+
+    const colors = {
+        "Cảm biến độ đục": '#FF6384',
+        "Cảm biến PH": '#36A2EB',
+        "Cảm biến TDS": '#FFCE56',
+        "Nhiệt Độ": '#4BC0C0'
+    };
+
+    const maxPoints = 1000;
+
+    const downsample = (data, maxPoints) => {
+        const sampled = [];
+        const step = Math.ceil(data.length / maxPoints);
+        for (let i = 0; i < data.length; i += step) {
+            sampled.push(data[i]);
+        }
+        return sampled;
+    };
+
+    function loadChartData(range = '12h') {
+        fetch(`/chart-data/?range=${range}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+
+                const series = Object.entries(data).map(([name, values]) => ({
+                    name,
+                    data: downsample(values, maxPoints)
+                }));
+
+                const options = {
+                    chart: {
+                        id: 'sensor-chart',
+                        type: 'line',
+                        height: 500,
+                        zoom: {
+                            enabled: true,
+                            type: 'x',
+                            autoScaleYaxis: true
+                        },
+                        toolbar: {
+                            autoSelected: 'zoom',
+                            tools: {
+                                zoom: true,
+                                zoomin: true,
+                                zoomout: true,
+                                pan: true,
+                                reset: true
+                            }
+                        }
+                    },
+                    stroke: {
+                        curve: 'smooth',
+                        width: 2
+                    },
+                    markers: { size: 0 },
+                    tooltip: {
+                        shared: true,
+                        x: { format: 'HH:mm dd/MM/yyyy' }
+                    },
+                    xaxis: {
+                        type: 'datetime',
+                        title: { text: 'Thời gian' }
+                    },
+                    yaxis: {
+                        title: { text: 'Giá trị đo' },
+                        labels: {
+                            style: { colors: '#666' }
+                        }
+                    },
+                    colors: Object.entries(data).map(([name]) => colors[name] || '#000'),
+                    series: series
+                };
+
+                if (chart) {
+                    chart.updateOptions(options);
+                } else {
+                    chart = new ApexCharts(document.querySelector("#sensorChart"), options);
+                    chart.render();
+                }
+            });
+    }
+
+    // Sự kiện chọn mốc thời gian
+    document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.range-btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-primary');
+            });
+
+            this.classList.remove('btn-outline-primary');
+            this.classList.add('btn-primary');
+
+            const range = this.dataset.range;
+            loadChartData(range);
+        });
+    });
+
+    // Load mặc định
+    document.addEventListener('DOMContentLoaded', function () {
+        loadChartData('12h');
+    });
+
+    function showNotify(type, message) {
+        const notyf = new Notyf({
+            position: { x: 'right', y: 'top' },
+            types: [
+                {
+                    type: 'error',
+                    background: '#FA5151',
+                    icon: { className: 'fas fa-times', tagName: 'span', color: '#fff' }
+                },
+                {
+                    type: 'success',
+                    background: '#00C851',
+                    icon: { className: 'fas fa-check', tagName: 'span', color: '#fff' }
+                }
+            ]
+        });
+
+        notyf.open({ type: type, message: message });
+    }
+</script>
+
+
+
+{% endblock javascripts %}

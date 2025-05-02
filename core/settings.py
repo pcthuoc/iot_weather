@@ -22,22 +22,37 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG   = os.getenv('DEBUG', False)
 DEVEL   = os.getenv('DEVEL', False)
-SERVER  = os.getenv('DEVEL', '127.0.0.1')
-
+SERVER  = os.getenv('*')
+ZALO_TTS_API_KEY = "r4OQbtCrRbldRpM15AUEHGk3Q5BrZ857"
+MQTT_BROKER_HOST = os.getenv('MQTT_BROKER_HOST', '103.252.136.73')
+MQTT_BROKER_PORT = int(os.getenv('MQTT_BROKER_PORT', 1883))
+MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'IOT/#')
+MQTT_USERNAME = os.getenv('MQTT_USERNAME', 'admin')
+MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', 'admin')
+TIME_SAVE = os.getenv('TIME_SAVE', 1)
 # load production server from .env
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', SERVER]
+ALLOWED_HOSTS = ['*']
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    'channels',
+    'daphne',
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
     'app',  # Enable the inner app
-    'customers'
+    'customers',
+    'sensors',
+    'mqtt_call',
+    'weather_forecast'
+
+
 ]
 
 MIDDLEWARE = [
@@ -83,6 +98,19 @@ DATABASES = {
         'NAME'  : 'db.sqlite3',
     }
 }
+ASGI_APPLICATION = "core.asgi.application"
+REDIS_HOST = os.getenv('REDIS_HOST', '0.0.0.0')
+REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(str(REDIS_HOST), int(REDIS_PORT))]
+
+        },
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -106,15 +134,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'vi'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
+
 
 #############################################################
 # SRC: https://devcenter.heroku.com/articles/django-assets

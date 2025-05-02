@@ -1,12 +1,14 @@
-asgiref
-autopep8
-django==2.2.10
-pycodestyle
-pytz
-sqlparse
-Unipath
-dj-database-url
-python-dotenv
-gunicorn
-whitenoise
-Pillow
+django==4.2.9
+python-dotenv==1.0.1
+str2bool==1.1
+
+# UI 
+django-admin-volt==1.0.10
+
+# Deployment
+whitenoise==6.6.0
+gunicorn==21.2.0
+
+# psycopg2-binary
+# mysqlclient
+channels

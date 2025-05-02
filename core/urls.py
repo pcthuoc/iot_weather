@@ -12,8 +12,8 @@ urlpatterns = [
     path('customers/', include("customers.urls")),  # Django customers route
     path("", include("app.urls")),  # UI Kits Html files
     path("", include("authentication.urls")),  # Auth routes - login / register
+    
 ]
-
 if settings.DEVEL:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

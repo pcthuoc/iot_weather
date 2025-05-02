@@ -10,6 +10,8 @@ urlpatterns = [
 
     # The home page
     path('', views.index, name='home'),
+    path('chart-data/', views.sensor_chart_data, name='sensor_chart_data'),
+
 
     # Matches any html file
     re_path(r'^.*\.html', views.pages, name='pages'),
